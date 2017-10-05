@@ -36,28 +36,28 @@ public class GestureCropImageView extends CropImageView {
         super(context, attrs, defStyle);
     }
 
-    public void setScaleEnabled(boolean scaleEnabled) {
-        mIsScaleEnabled = scaleEnabled;
-    }
-
     public boolean isScaleEnabled() {
         return mIsScaleEnabled;
     }
 
-    public void setRotateEnabled(boolean rotateEnabled) {
-        mIsRotateEnabled = rotateEnabled;
+    public void setScaleEnabled(boolean scaleEnabled) {
+        mIsScaleEnabled = scaleEnabled;
     }
 
     public boolean isRotateEnabled() {
         return mIsRotateEnabled;
     }
 
-    public void setDoubleTapScaleSteps(int doubleTapScaleSteps) {
-        mDoubleTapScaleSteps = doubleTapScaleSteps;
+    public void setRotateEnabled(boolean rotateEnabled) {
+        mIsRotateEnabled = rotateEnabled;
     }
 
     public int getDoubleTapScaleSteps() {
         return mDoubleTapScaleSteps;
+    }
+
+    public void setDoubleTapScaleSteps(int doubleTapScaleSteps) {
+        mDoubleTapScaleSteps = doubleTapScaleSteps;
     }
 
     /**

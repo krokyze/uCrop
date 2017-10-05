@@ -13,30 +13,30 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:orientation="horizontal"/>
+            android:orientation="horizontal" />
 
         <include
             android:id="@+id/layout_rotate_wheel"
-            layout="@layout/ucrop_layout_rotate_wheel"/>
+            layout="@layout/ucrop_layout_rotate_wheel" />
 
         <include
             android:id="@+id/layout_scale_wheel"
-            layout="@layout/ucrop_layout_scale_wheel"/>
+            layout="@layout/ucrop_layout_scale_wheel" />
 
         <include
             android:id="@+id/layout_brightness_bar"
-            layout="@layout/ucrop_layout_brightness_wheel"/>
+            layout="@layout/ucrop_layout_brightness_wheel" />
 
         <include
             android:id="@+id/layout_contrast_bar"
-            layout="@layout/ucrop_layout_contrast_wheel"/>
+            layout="@layout/ucrop_layout_contrast_wheel" />
     </FrameLayout>
 
-    <ImageView
+    <android.support.v7.widget.AppCompatImageView
         android:layout_width="match_parent"
         android:layout_height="@dimen/ucrop_height_divider_shadow"
         android:layout_above="@+id/wrapper_states"
-        android:background="@drawable/ucrop_shadow_upside"/>
+        android:background="@drawable/ucrop_shadow_upside" />
 
     <LinearLayout
         android:id="@+id/wrapper_states"
@@ -52,10 +52,10 @@
             android:id="@+id/state_scale"
             style="@style/ucrop_WrapperIconState">
 
-            <ImageView
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/image_view_state_scale"
                 style="@style/ucrop_ImageViewWidgetIcon"
-                android:src="@drawable/ucrop_ic_scale"/>
+                android:src="@drawable/ucrop_ic_scale" />
 
         </FrameLayout>
 
@@ -63,10 +63,10 @@
             android:id="@+id/state_aspect_ratio"
             style="@style/ucrop_WrapperIconState">
 
-            <ImageView
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/image_view_state_aspect_ratio"
                 style="@style/ucrop_ImageViewWidgetIcon"
-                android:src="@drawable/ucrop_ic_crop"/>
+                android:src="@drawable/ucrop_ic_crop" />
 
         </FrameLayout>
 
@@ -74,10 +74,10 @@
             android:id="@+id/state_rotate"
             style="@style/ucrop_WrapperIconState">
 
-            <ImageView
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/image_view_state_rotate"
                 style="@style/ucrop_ImageViewWidgetIcon"
-                android:src="@drawable/ucrop_ic_rotate"/>
+                android:src="@drawable/ucrop_ic_rotate" />
 
         </FrameLayout>
 
@@ -85,20 +85,20 @@
             android:id="@+id/state_brightness"
             style="@style/ucrop_WrapperIconState">
 
-            <ImageView
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/image_view_state_brightness"
                 style="@style/ucrop_ImageViewWidgetIcon"
-                android:src="@drawable/ucrop_ic_brightness"/>
+                android:src="@drawable/ucrop_ic_brightness" />
         </FrameLayout>
 
         <FrameLayout
             android:id="@+id/state_contrast"
             style="@style/ucrop_WrapperIconState">
 
-            <ImageView
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/image_view_state_contrast"
                 style="@style/ucrop_ImageViewWidgetIcon"
-                android:src="@drawable/ucrop_ic_contrast"/>
+                android:src="@drawable/ucrop_ic_contrast" />
         </FrameLayout>
     </LinearLayout>
 </merge>

@@ -17,6 +17,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.AppCompatImageView;
+import android.support.v7.widget.AppCompatTextView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
@@ -28,10 +30,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 
 import com.yalantis.ucrop.callback.BitmapCropCallback;
 import com.yalantis.ucrop.model.AspectRatio;
@@ -63,46 +63,80 @@ public class UCropActivity extends AppCompatActivity {
     public static final int SCALE = 1;
     public static final int ROTATE = 2;
     public static final int ALL = 3;
-
-    @IntDef({NONE, SCALE, ROTATE, ALL})
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface GestureTypes {
-
-    }
-
     private static final String TAG = "UCropActivity";
-
     private static final int TABS_COUNT = 3;
     private static final int SCALE_WIDGET_SENSITIVITY_COEFFICIENT = 15000;
     private static final int ROTATE_WIDGET_SENSITIVITY_COEFFICIENT = 42;
-
     private String mToolbarTitle;
-
     // Enables dynamic coloring
     private int mToolbarColor;
     private int mStatusBarColor;
     private int mActiveWidgetColor;
     private int mToolbarWidgetColor;
-    @ColorInt private int mRootViewBackgroundColor;
-    @DrawableRes private int mToolbarCancelDrawable;
-    @DrawableRes private int mToolbarCropDrawable;
+    @ColorInt
+    private int mRootViewBackgroundColor;
+    @DrawableRes
+    private int mToolbarCancelDrawable;
+    @DrawableRes
+    private int mToolbarCropDrawable;
     private int mLogoColor;
-
     private boolean mShowBottomControls;
     private boolean mShowLoader = true;
-
     private UCropView mUCropView;
     private GestureCropImageView mGestureCropImageView;
     private OverlayView mOverlayView;
     private ViewGroup mWrapperStateAspectRatio, mWrapperStateRotate, mWrapperStateScale, mWrapperStateBrightness, mWrapperStateContrast;
     private ViewGroup mLayoutAspectRatio, mLayoutRotate, mLayoutScale, mLayoutBrightnessBar, mLayoutContrastBar;
     private List<ViewGroup> mCropAspectRatioViews = new ArrayList<>();
-    private TextView mTextViewRotateAngle, mTextViewScalePercent, mTextViewBrightness, mTextViewContrast;
+    private AppCompatTextView mTextViewRotateAngle, mTextViewScalePercent, mTextViewBrightness, mTextViewContrast;
     private View mBlockingView;
-
     private Bitmap.CompressFormat mCompressFormat = DEFAULT_COMPRESS_FORMAT;
     private int mCompressQuality = DEFAULT_COMPRESS_QUALITY;
     private int[] mAllowedGestures = new int[]{SCALE, ROTATE, ALL};
+    private final View.OnClickListener mStateClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (!v.isSelected()) {
+                setWidgetState(v.getId());
+            }
+        }
+    };
+    private TransformImageView.TransformImageListener mImageListener = new TransformImageView.TransformImageListener() {
+        @Override
+        public void onRotate(float currentAngle) {
+            setAngleText(currentAngle);
+        }
+
+        @Override
+        public void onScale(float currentScale) {
+            setScaleText(currentScale);
+        }
+
+        @Override
+        public void onBrightness(float currentBrightness) {
+            setBrightnessText(currentBrightness);
+        }
+
+        @Override
+        public void onContrast(float currentContrast) {
+            setContrastText(currentContrast);
+        }
+
+        @Override
+        public void onLoadComplete() {
+            mUCropView.animate().alpha(1).setDuration(300).setInterpolator(new AccelerateInterpolator());
+            mBlockingView.setClickable(false);
+            mShowLoader = false;
+            supportInvalidateOptionsMenu();
+        }
+
+        @Override
+        public void onLoadFailure(@NonNull Exception e) {
+            setResultError(e);
+            finish();
+        }
+
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -323,7 +357,7 @@ public class UCropActivity extends AppCompatActivity {
         toolbar.setBackgroundColor(mToolbarColor);
         toolbar.setTitleTextColor(mToolbarWidgetColor);
 
-        final TextView toolbarTitle = (TextView) toolbar.findViewById(R.id.toolbar_title);
+        final AppCompatTextView toolbarTitle = (AppCompatTextView) toolbar.findViewById(R.id.toolbar_title);
         toolbarTitle.setTextColor(mToolbarWidgetColor);
         toolbarTitle.setText(mToolbarTitle);
 
@@ -346,57 +380,20 @@ public class UCropActivity extends AppCompatActivity {
 
         mGestureCropImageView.setTransformImageListener(mImageListener);
 
-        ((ImageView) findViewById(R.id.image_view_logo)).setColorFilter(mLogoColor, PorterDuff.Mode.SRC_ATOP);
+        ((AppCompatImageView) findViewById(R.id.image_view_logo)).setColorFilter(mLogoColor, PorterDuff.Mode.SRC_ATOP);
 
         findViewById(R.id.ucrop_frame).setBackgroundColor(mRootViewBackgroundColor);
     }
-
-    private TransformImageView.TransformImageListener mImageListener = new TransformImageView.TransformImageListener() {
-        @Override
-        public void onRotate(float currentAngle) {
-            setAngleText(currentAngle);
-        }
-
-        @Override
-        public void onScale(float currentScale) {
-            setScaleText(currentScale);
-        }
-
-        @Override
-        public void onBrightness(float currentBrightness) {
-            setBrightnessText(currentBrightness);
-        }
-
-        @Override
-        public void onContrast(float currentContrast) {
-            setContrastText(currentContrast);
-        }
-
-        @Override
-        public void onLoadComplete() {
-            mUCropView.animate().alpha(1).setDuration(300).setInterpolator(new AccelerateInterpolator());
-            mBlockingView.setClickable(false);
-            mShowLoader = false;
-            supportInvalidateOptionsMenu();
-        }
-
-        @Override
-        public void onLoadFailure(@NonNull Exception e) {
-            setResultError(e);
-            finish();
-        }
-
-    };
 
     /**
      * Use {@link #mActiveWidgetColor} for color filter
      */
     private void setupStatesWrapper() {
-        ImageView stateScaleImageView = (ImageView) findViewById(R.id.image_view_state_scale);
-        ImageView stateRotateImageView = (ImageView) findViewById(R.id.image_view_state_rotate);
-        ImageView stateAspectRatioImageView = (ImageView) findViewById(R.id.image_view_state_aspect_ratio);
-        ImageView stateBrightnessImageView = (ImageView) findViewById(R.id.image_view_state_brightness);
-        ImageView stateContrastImageView = (ImageView) findViewById(R.id.image_view_state_contrast);
+        AppCompatImageView stateScaleImageView = (AppCompatImageView) findViewById(R.id.image_view_state_scale);
+        AppCompatImageView stateRotateImageView = (AppCompatImageView) findViewById(R.id.image_view_state_rotate);
+        AppCompatImageView stateAspectRatioImageView = (AppCompatImageView) findViewById(R.id.image_view_state_aspect_ratio);
+        AppCompatImageView stateBrightnessImageView = (AppCompatImageView) findViewById(R.id.image_view_state_brightness);
+        AppCompatImageView stateContrastImageView = (AppCompatImageView) findViewById(R.id.image_view_state_contrast);
 
         stateScaleImageView.setImageDrawable(new SelectedStateListDrawable(stateScaleImageView.getDrawable(), mActiveWidgetColor));
         stateRotateImageView.setImageDrawable(new SelectedStateListDrawable(stateRotateImageView.getDrawable(), mActiveWidgetColor));
@@ -476,7 +473,7 @@ public class UCropActivity extends AppCompatActivity {
     }
 
     private void setupRotateWidget() {
-        mTextViewRotateAngle = ((TextView) findViewById(R.id.text_view_rotate));
+        mTextViewRotateAngle = ((AppCompatTextView) findViewById(R.id.text_view_rotate));
         ((HorizontalProgressWheelView) findViewById(R.id.rotate_scroll_wheel))
                 .setScrollingListener(new HorizontalProgressWheelView.ScrollingListener() {
                     @Override
@@ -513,7 +510,7 @@ public class UCropActivity extends AppCompatActivity {
     }
 
     private void setupScaleWidget() {
-        mTextViewScalePercent = ((TextView) findViewById(R.id.text_view_scale));
+        mTextViewScalePercent = ((AppCompatTextView) findViewById(R.id.text_view_scale));
         ((HorizontalProgressWheelView) findViewById(R.id.scale_scroll_wheel))
                 .setScrollingListener(new HorizontalProgressWheelView.ScrollingListener() {
                     @Override
@@ -541,7 +538,7 @@ public class UCropActivity extends AppCompatActivity {
     }
 
     private void setupBrightnessWidget() {
-        mTextViewBrightness = ((TextView) findViewById(R.id.text_view_brightness));
+        mTextViewBrightness = ((AppCompatTextView) findViewById(R.id.text_view_brightness));
         ((HorizontalProgressWheelView) findViewById(R.id.brightness_scroll_wheel))
                 .setScrollingListener(new HorizontalProgressWheelView.ScrollingListener() {
                     @Override
@@ -564,7 +561,7 @@ public class UCropActivity extends AppCompatActivity {
     }
 
     private void setupContrastWidget() {
-        mTextViewContrast = ((TextView) findViewById(R.id.text_view_contrast));
+        mTextViewContrast = ((AppCompatTextView) findViewById(R.id.text_view_contrast));
         ((HorizontalProgressWheelView) findViewById(R.id.contrast_scroll_wheel))
                 .setScrollingListener(new HorizontalProgressWheelView.ScrollingListener() {
                     @Override
@@ -619,15 +616,6 @@ public class UCropActivity extends AppCompatActivity {
         mGestureCropImageView.postRotate(angle);
         mGestureCropImageView.setImageToWrapCropBounds();
     }
-
-    private final View.OnClickListener mStateClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (!v.isSelected()) {
-                setWidgetState(v.getId());
-            }
-        }
-    };
 
     private void setInitialState() {
         if (mShowBottomControls) {
@@ -721,6 +709,12 @@ public class UCropActivity extends AppCompatActivity {
 
     protected void setResultError(Throwable throwable) {
         setResult(UCrop.RESULT_ERROR, new Intent().putExtra(UCrop.EXTRA_ERROR, throwable));
+    }
+
+    @IntDef({NONE, SCALE, ROTATE, ALL})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface GestureTypes {
+
     }
 
 }

@@ -28,6 +28,7 @@ import java.util.Locale;
  * <p/>
  * Builder class to ease Intent setup.
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class UCrop {
 
     public static final int REQUEST_CROP = 69;
@@ -53,6 +54,13 @@ public class UCrop {
     private Intent mCropIntent;
     private Bundle mCropOptionsBundle;
 
+    private UCrop(@NonNull Uri source, @NonNull Uri destination) {
+        mCropIntent = new Intent();
+        mCropOptionsBundle = new Bundle();
+        mCropOptionsBundle.putParcelable(EXTRA_INPUT_URI, source);
+        mCropOptionsBundle.putParcelable(EXTRA_OUTPUT_URI, destination);
+    }
+
     /**
      * This method creates new Intent builder and sets both source and destination image URIs.
      *
@@ -63,11 +71,53 @@ public class UCrop {
         return new UCrop(source, destination);
     }
 
-    private UCrop(@NonNull Uri source, @NonNull Uri destination) {
-        mCropIntent = new Intent();
-        mCropOptionsBundle = new Bundle();
-        mCropOptionsBundle.putParcelable(EXTRA_INPUT_URI, source);
-        mCropOptionsBundle.putParcelable(EXTRA_OUTPUT_URI, destination);
+    /**
+     * Retrieve cropped image Uri from the result Intent
+     *
+     * @param intent crop result intent
+     */
+    @Nullable
+    public static Uri getOutput(@NonNull Intent intent) {
+        return intent.getParcelableExtra(EXTRA_OUTPUT_URI);
+    }
+
+    /**
+     * Retrieve the width of the cropped image
+     *
+     * @param intent crop result intent
+     */
+    public static int getOutputImageWidth(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_OUTPUT_IMAGE_WIDTH, -1);
+    }
+
+    /**
+     * Retrieve the height of the cropped image
+     *
+     * @param intent crop result intent
+     */
+    public static int getOutputImageHeight(@NonNull Intent intent) {
+        return intent.getIntExtra(EXTRA_OUTPUT_IMAGE_HEIGHT, -1);
+    }
+
+    /**
+     * Retrieve cropped image aspect ratio from the result Intent
+     *
+     * @param intent crop result intent
+     * @return aspect ratio as a floating point value (x:y) - so it will be 1 for 1:1 or 4/3 for 4:3
+     */
+    public static float getOutputCropAspectRatio(@NonNull Intent intent) {
+        return intent.getParcelableExtra(EXTRA_OUTPUT_CROP_ASPECT_RATIO);
+    }
+
+    /**
+     * Method retrieves error from the result intent.
+     *
+     * @param result crop result Intent
+     * @return Throwable that could happen while image processing
+     */
+    @Nullable
+    public static Throwable getError(@NonNull Intent result) {
+        return (Throwable) result.getSerializableExtra(EXTRA_ERROR);
     }
 
     /**
@@ -173,61 +223,11 @@ public class UCrop {
      *
      * @return Intent for {@link UCropActivity}
      */
-    public Intent getIntent(@NonNull Context context) {
+    private Intent getIntent(@NonNull Context context) {
         mCropIntent.setClass(context, UCropActivity.class);
         mCropIntent.putExtras(mCropOptionsBundle);
         return mCropIntent;
     }
-
-    /**
-     * Retrieve cropped image Uri from the result Intent
-     *
-     * @param intent crop result intent
-     */
-    @Nullable
-    public static Uri getOutput(@NonNull Intent intent) {
-        return intent.getParcelableExtra(EXTRA_OUTPUT_URI);
-    }
-
-    /**
-     * Retrieve the width of the cropped image
-     *
-     * @param intent crop result intent
-     */
-    public static int getOutputImageWidth(@NonNull Intent intent) {
-        return intent.getIntExtra(EXTRA_OUTPUT_IMAGE_WIDTH, -1);
-    }
-
-    /**
-     * Retrieve the height of the cropped image
-     *
-     * @param intent crop result intent
-     */
-    public static int getOutputImageHeight(@NonNull Intent intent) {
-        return intent.getIntExtra(EXTRA_OUTPUT_IMAGE_HEIGHT, -1);
-    }
-
-    /**
-     * Retrieve cropped image aspect ratio from the result Intent
-     *
-     * @param intent crop result intent
-     * @return aspect ratio as a floating point value (x:y) - so it will be 1 for 1:1 or 4/3 for 4:3
-     */
-    public static float getOutputCropAspectRatio(@NonNull Intent intent) {
-        return intent.getParcelableExtra(EXTRA_OUTPUT_CROP_ASPECT_RATIO);
-    }
-
-    /**
-     * Method retrieves error from the result intent.
-     *
-     * @param result crop result Intent
-     * @return Throwable that could happen while image processing
-     */
-    @Nullable
-    public static Throwable getError(@NonNull Intent result) {
-        return (Throwable) result.getSerializableExtra(EXTRA_ERROR);
-    }
-
 
     /**
      * Class that helps to setup advanced configs that are not commonly used.
@@ -235,46 +235,46 @@ public class UCrop {
      */
     public static class Options {
 
-        public static final String EXTRA_COMPRESSION_FORMAT_NAME = EXTRA_PREFIX + ".CompressionFormatName";
-        public static final String EXTRA_COMPRESSION_QUALITY = EXTRA_PREFIX + ".CompressionQuality";
+        static final String EXTRA_COMPRESSION_FORMAT_NAME = EXTRA_PREFIX + ".CompressionFormatName";
+        static final String EXTRA_COMPRESSION_QUALITY = EXTRA_PREFIX + ".CompressionQuality";
 
-        public static final String EXTRA_ALLOWED_GESTURES = EXTRA_PREFIX + ".AllowedGestures";
+        static final String EXTRA_ALLOWED_GESTURES = EXTRA_PREFIX + ".AllowedGestures";
 
-        public static final String EXTRA_MAX_BITMAP_SIZE = EXTRA_PREFIX + ".MaxBitmapSize";
-        public static final String EXTRA_MAX_SCALE_MULTIPLIER = EXTRA_PREFIX + ".MaxScaleMultiplier";
-        public static final String EXTRA_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION = EXTRA_PREFIX + ".ImageToCropBoundsAnimDuration";
+        static final String EXTRA_MAX_BITMAP_SIZE = EXTRA_PREFIX + ".MaxBitmapSize";
+        static final String EXTRA_MAX_SCALE_MULTIPLIER = EXTRA_PREFIX + ".MaxScaleMultiplier";
+        static final String EXTRA_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION = EXTRA_PREFIX + ".ImageToCropBoundsAnimDuration";
 
-        public static final String EXTRA_DIMMED_LAYER_COLOR = EXTRA_PREFIX + ".DimmedLayerColor";
-        public static final String EXTRA_CIRCLE_DIMMED_LAYER = EXTRA_PREFIX + ".CircleDimmedLayer";
+        static final String EXTRA_DIMMED_LAYER_COLOR = EXTRA_PREFIX + ".DimmedLayerColor";
+        static final String EXTRA_CIRCLE_DIMMED_LAYER = EXTRA_PREFIX + ".CircleDimmedLayer";
 
-        public static final String EXTRA_SHOW_CROP_FRAME = EXTRA_PREFIX + ".ShowCropFrame";
-        public static final String EXTRA_CROP_FRAME_COLOR = EXTRA_PREFIX + ".CropFrameColor";
-        public static final String EXTRA_CROP_FRAME_STROKE_WIDTH = EXTRA_PREFIX + ".CropFrameStrokeWidth";
+        static final String EXTRA_SHOW_CROP_FRAME = EXTRA_PREFIX + ".ShowCropFrame";
+        static final String EXTRA_CROP_FRAME_COLOR = EXTRA_PREFIX + ".CropFrameColor";
+        static final String EXTRA_CROP_FRAME_STROKE_WIDTH = EXTRA_PREFIX + ".CropFrameStrokeWidth";
 
-        public static final String EXTRA_SHOW_CROP_GRID = EXTRA_PREFIX + ".ShowCropGrid";
-        public static final String EXTRA_CROP_GRID_ROW_COUNT = EXTRA_PREFIX + ".CropGridRowCount";
-        public static final String EXTRA_CROP_GRID_COLUMN_COUNT = EXTRA_PREFIX + ".CropGridColumnCount";
-        public static final String EXTRA_CROP_GRID_COLOR = EXTRA_PREFIX + ".CropGridColor";
-        public static final String EXTRA_CROP_GRID_STROKE_WIDTH = EXTRA_PREFIX + ".CropGridStrokeWidth";
+        static final String EXTRA_SHOW_CROP_GRID = EXTRA_PREFIX + ".ShowCropGrid";
+        static final String EXTRA_CROP_GRID_ROW_COUNT = EXTRA_PREFIX + ".CropGridRowCount";
+        static final String EXTRA_CROP_GRID_COLUMN_COUNT = EXTRA_PREFIX + ".CropGridColumnCount";
+        static final String EXTRA_CROP_GRID_COLOR = EXTRA_PREFIX + ".CropGridColor";
+        static final String EXTRA_CROP_GRID_STROKE_WIDTH = EXTRA_PREFIX + ".CropGridStrokeWidth";
 
-        public static final String EXTRA_TOOL_BAR_COLOR = EXTRA_PREFIX + ".ToolbarColor";
-        public static final String EXTRA_STATUS_BAR_COLOR = EXTRA_PREFIX + ".StatusBarColor";
-        public static final String EXTRA_UCROP_COLOR_WIDGET_ACTIVE = EXTRA_PREFIX + ".UcropColorWidgetActive";
+        static final String EXTRA_TOOL_BAR_COLOR = EXTRA_PREFIX + ".ToolbarColor";
+        static final String EXTRA_STATUS_BAR_COLOR = EXTRA_PREFIX + ".StatusBarColor";
+        static final String EXTRA_UCROP_COLOR_WIDGET_ACTIVE = EXTRA_PREFIX + ".UcropColorWidgetActive";
 
-        public static final String EXTRA_UCROP_WIDGET_COLOR_TOOLBAR = EXTRA_PREFIX + ".UcropToolbarWidgetColor";
-        public static final String EXTRA_UCROP_TITLE_TEXT_TOOLBAR = EXTRA_PREFIX + ".UcropToolbarTitleText";
-        public static final String EXTRA_UCROP_WIDGET_CANCEL_DRAWABLE = EXTRA_PREFIX + ".UcropToolbarCancelDrawable";
-        public static final String EXTRA_UCROP_WIDGET_CROP_DRAWABLE = EXTRA_PREFIX + ".UcropToolbarCropDrawable";
+        static final String EXTRA_UCROP_WIDGET_COLOR_TOOLBAR = EXTRA_PREFIX + ".UcropToolbarWidgetColor";
+        static final String EXTRA_UCROP_TITLE_TEXT_TOOLBAR = EXTRA_PREFIX + ".UcropToolbarTitleText";
+        static final String EXTRA_UCROP_WIDGET_CANCEL_DRAWABLE = EXTRA_PREFIX + ".UcropToolbarCancelDrawable";
+        static final String EXTRA_UCROP_WIDGET_CROP_DRAWABLE = EXTRA_PREFIX + ".UcropToolbarCropDrawable";
 
-        public static final String EXTRA_UCROP_LOGO_COLOR = EXTRA_PREFIX + ".UcropLogoColor";
+        static final String EXTRA_UCROP_LOGO_COLOR = EXTRA_PREFIX + ".UcropLogoColor";
 
-        public static final String EXTRA_HIDE_BOTTOM_CONTROLS = EXTRA_PREFIX + ".HideBottomControls";
-        public static final String EXTRA_FREE_STYLE_CROP = EXTRA_PREFIX + ".FreeStyleCrop";
+        static final String EXTRA_HIDE_BOTTOM_CONTROLS = EXTRA_PREFIX + ".HideBottomControls";
+        static final String EXTRA_FREE_STYLE_CROP = EXTRA_PREFIX + ".FreeStyleCrop";
 
-        public static final String EXTRA_ASPECT_RATIO_SELECTED_BY_DEFAULT = EXTRA_PREFIX + ".AspectRatioSelectedByDefault";
-        public static final String EXTRA_ASPECT_RATIO_OPTIONS = EXTRA_PREFIX + ".AspectRatioOptions";
+        static final String EXTRA_ASPECT_RATIO_SELECTED_BY_DEFAULT = EXTRA_PREFIX + ".AspectRatioSelectedByDefault";
+        static final String EXTRA_ASPECT_RATIO_OPTIONS = EXTRA_PREFIX + ".AspectRatioOptions";
 
-        public static final String EXTRA_UCROP_ROOT_VIEW_BACKGROUND_COLOR = EXTRA_PREFIX + ".UcropRootViewBackgroundColor";
+        static final String EXTRA_UCROP_ROOT_VIEW_BACKGROUND_COLOR = EXTRA_PREFIX + ".UcropRootViewBackgroundColor";
 
 
         private final Bundle mOptionBundle;
@@ -284,7 +284,7 @@ public class UCrop {
         }
 
         @NonNull
-        public Bundle getOptionBundle() {
+        Bundle getOptionBundle() {
             return mOptionBundle;
         }
 

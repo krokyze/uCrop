@@ -42,20 +42,16 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
         System.loadLibrary("ucrop");
     }
 
-    private Bitmap mViewBitmap;
-
     private final RectF mCropRect;
     private final RectF mCurrentImageRect;
-
-    private float mCurrentScale, mCurrentAngle;
     private final int mMaxResultImageSizeX, mMaxResultImageSizeY;
-
     private final Bitmap.CompressFormat mCompressFormat;
     private final int mCompressQuality;
     private final String mImageInputPath, mImageOutputPath;
     private final ExifInfo mExifInfo;
     private final BitmapCropCallback mCropCallback;
-
+    private Bitmap mViewBitmap;
+    private float mCurrentScale, mCurrentAngle;
     private float mBrightness;
     private int mContrast;
 
@@ -86,6 +82,14 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
 
         mCropCallback = cropCallback;
     }
+
+    @SuppressWarnings("JniMissingFunction")
+    native public static boolean
+    cropCImg(String inputPath, String outputPath,
+             int left, int top, int width, int height,
+             float angle, float resizeScale,
+             int format, int quality,
+             int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
 
     @Override
     @Nullable
@@ -207,14 +211,6 @@ public class BitmapCropTask extends AsyncTask<Void, Void, Throwable> {
                 || Math.abs(mCropRect.right - mCurrentImageRect.right) > pixelError
                 || mCurrentAngle != 0;
     }
-
-    @SuppressWarnings("JniMissingFunction")
-    native public static boolean
-    cropCImg(String inputPath, String outputPath,
-             int left, int top, int width, int height,
-             float angle, float resizeScale,
-             int format, int quality,
-             int exifDegrees, int exifTranslation) throws IOException, OutOfMemoryError;
 
     @Override
     protected void onPostExecute(@Nullable Throwable t) {
