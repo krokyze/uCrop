@@ -46,29 +46,11 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
     private static final String TAG = "BitmapWorkerTask";
 
     private final Context mContext;
-    private Uri mInputUri;
-    private Uri mOutputUri;
     private final int mRequiredWidth;
     private final int mRequiredHeight;
-
     private final BitmapLoadCallback mBitmapLoadCallback;
-
-    public static class BitmapWorkerResult {
-
-        Bitmap mBitmapResult;
-        ExifInfo mExifInfo;
-        Exception mBitmapWorkerException;
-
-        public BitmapWorkerResult(@NonNull Bitmap bitmapResult, @NonNull ExifInfo exifInfo) {
-            mBitmapResult = bitmapResult;
-            mExifInfo = exifInfo;
-        }
-
-        public BitmapWorkerResult(@NonNull Exception bitmapWorkerException) {
-            mBitmapWorkerException = bitmapWorkerException;
-        }
-
-    }
+    private Uri mInputUri;
+    private Uri mOutputUri;
 
     public BitmapLoadTask(@NonNull Context context,
                           @NonNull Uri inputUri, @Nullable Uri outputUri,
@@ -275,6 +257,23 @@ public class BitmapLoadTask extends AsyncTask<Void, Void, BitmapLoadTask.BitmapW
         } else {
             mBitmapLoadCallback.onFailure(result.mBitmapWorkerException);
         }
+    }
+
+    public static class BitmapWorkerResult {
+
+        Bitmap mBitmapResult;
+        ExifInfo mExifInfo;
+        Exception mBitmapWorkerException;
+
+        public BitmapWorkerResult(@NonNull Bitmap bitmapResult, @NonNull ExifInfo exifInfo) {
+            mBitmapResult = bitmapResult;
+            mExifInfo = exifInfo;
+        }
+
+        public BitmapWorkerResult(@NonNull Exception bitmapWorkerException) {
+            mBitmapWorkerException = bitmapWorkerException;
+        }
+
     }
 
 }

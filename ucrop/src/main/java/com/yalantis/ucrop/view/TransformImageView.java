@@ -11,9 +11,9 @@ import android.net.Uri;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.widget.AppCompatImageView;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.widget.ImageView;
 
 import com.yalantis.ucrop.callback.BitmapLoadCallback;
 import com.yalantis.ucrop.model.ExifInfo;
@@ -28,7 +28,7 @@ import com.yalantis.ucrop.util.RectUtils;
  * This class provides base logic to setup the image, transform it with matrix (move, scale, rotate),
  * and methods to get current matrix state.
  */
-public class TransformImageView extends ImageView {
+public class TransformImageView extends AppCompatImageView {
 
     private static final String TAG = "TransformImageView";
 
@@ -45,13 +45,10 @@ public class TransformImageView extends ImageView {
     protected int mThisWidth, mThisHeight;
 
     protected TransformImageListener mTransformImageListener;
-
-    private float[] mInitialImageCorners;
-    private float[] mInitialImageCenter;
-
     protected boolean mBitmapDecoded = false;
     protected boolean mBitmapLaidOut = false;
-
+    private float[] mInitialImageCorners;
+    private float[] mInitialImageCenter;
     private int mMaxBitmapSize = 0;
 
     private float mBrightness = 0;
@@ -59,24 +56,6 @@ public class TransformImageView extends ImageView {
 
     private String mImageInputPath, mImageOutputPath;
     private ExifInfo mExifInfo;
-
-    /**
-     * Interface for rotation and scale change notifying.
-     */
-    public interface TransformImageListener {
-
-        void onLoadComplete();
-
-        void onLoadFailure(@NonNull Exception e);
-
-        void onRotate(float currentAngle);
-
-        void onScale(float currentScale);
-
-        void onBrightness(float currentBrightness);
-
-        void onContrast(float currentContrast);
-    }
 
     public TransformImageView(Context context) {
         this(context, null);
@@ -104,6 +83,13 @@ public class TransformImageView extends ImageView {
         }
     }
 
+    public int getMaxBitmapSize() {
+        if (mMaxBitmapSize <= 0) {
+            mMaxBitmapSize = BitmapLoadUtils.calculateMaxBitmapSize(getContext());
+        }
+        return mMaxBitmapSize;
+    }
+
     /**
      * Setter for {@link #mMaxBitmapSize} value.
      * Be sure to call it before {@link #setImageURI(Uri)} or other image setters.
@@ -112,13 +98,6 @@ public class TransformImageView extends ImageView {
      */
     public void setMaxBitmapSize(int maxBitmapSize) {
         mMaxBitmapSize = maxBitmapSize;
-    }
-
-    public int getMaxBitmapSize() {
-        if (mMaxBitmapSize <= 0) {
-            mMaxBitmapSize = BitmapLoadUtils.calculateMaxBitmapSize(getContext());
-        }
-        return mMaxBitmapSize;
     }
 
     @Override
@@ -279,7 +258,6 @@ public class TransformImageView extends ImageView {
         mTransformImageListener.onBrightness(mBrightness);
     }
 
-
     public void postContrast(float contrast) {
         mContrast += contrast;
 
@@ -373,6 +351,24 @@ public class TransformImageView extends ImageView {
     private void updateCurrentImagePoints() {
         mCurrentImageMatrix.mapPoints(mCurrentImageCorners, mInitialImageCorners);
         mCurrentImageMatrix.mapPoints(mCurrentImageCenter, mInitialImageCenter);
+    }
+
+    /**
+     * Interface for rotation and scale change notifying.
+     */
+    public interface TransformImageListener {
+
+        void onLoadComplete();
+
+        void onLoadFailure(@NonNull Exception e);
+
+        void onRotate(float currentAngle);
+
+        void onScale(float currentScale);
+
+        void onBrightness(float currentBrightness);
+
+        void onContrast(float currentContrast);
     }
 
 }

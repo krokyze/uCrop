@@ -44,14 +44,13 @@ import java.nio.charset.Charset;
  * A class for parsing the exif orientation from an image header.
  */
 public class ImageHeaderParser {
-    private static final String TAG = "ImageHeaderParser";
     /**
      * A constant indicating we were unable to parse the orientation from the image either because
      * no exif segment containing orientation data existed, or because of an I/O error attempting to
      * read the exif segment.
      */
     public static final int UNKNOWN_ORIENTATION = -1;
-
+    private static final String TAG = "ImageHeaderParser";
     private static final int EXIF_MAGIC_NUMBER = 0xFFD8;
     // "MM".
     private static final int MOTOROLA_TIFF_MAGIC_NUMBER = 0x4D4D;
@@ -71,6 +70,149 @@ public class ImageHeaderParser {
 
     public ImageHeaderParser(InputStream is) {
         reader = new StreamReader(is);
+    }
+
+    private static int parseExifSegment(RandomAccessReader segmentData) {
+        final int headerOffsetSize = JPEG_EXIF_SEGMENT_PREAMBLE.length();
+
+        short byteOrderIdentifier = segmentData.getInt16(headerOffsetSize);
+        final ByteOrder byteOrder;
+        if (byteOrderIdentifier == MOTOROLA_TIFF_MAGIC_NUMBER) {
+            byteOrder = ByteOrder.BIG_ENDIAN;
+        } else if (byteOrderIdentifier == INTEL_TIFF_MAGIC_NUMBER) {
+            byteOrder = ByteOrder.LITTLE_ENDIAN;
+        } else {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Unknown endianness = " + byteOrderIdentifier);
+            }
+            byteOrder = ByteOrder.BIG_ENDIAN;
+        }
+
+        segmentData.order(byteOrder);
+
+        int firstIfdOffset = segmentData.getInt32(headerOffsetSize + 4) + headerOffsetSize;
+        int tagCount = segmentData.getInt16(firstIfdOffset);
+
+        int tagOffset, tagType, formatCode, componentCount;
+        for (int i = 0; i < tagCount; i++) {
+            tagOffset = calcTagOffset(firstIfdOffset, i);
+            tagType = segmentData.getInt16(tagOffset);
+
+            // We only want orientation.
+            if (tagType != ORIENTATION_TAG_TYPE) {
+                continue;
+            }
+
+            formatCode = segmentData.getInt16(tagOffset + 2);
+
+            // 12 is max format code.
+            if (formatCode < 1 || formatCode > 12) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Got invalid format code = " + formatCode);
+                }
+                continue;
+            }
+
+            componentCount = segmentData.getInt32(tagOffset + 4);
+
+            if (componentCount < 0) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Negative tiff component count");
+                }
+                continue;
+            }
+
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "Got tagIndex=" + i + " tagType=" + tagType + " formatCode=" + formatCode
+                        + " componentCount=" + componentCount);
+            }
+
+            final int byteCount = componentCount + BYTES_PER_FORMAT[formatCode];
+
+            if (byteCount > 4) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Got byte count > 4, not orientation, continuing, formatCode=" + formatCode);
+                }
+                continue;
+            }
+
+            final int tagValueOffset = tagOffset + 8;
+
+            if (tagValueOffset < 0 || tagValueOffset > segmentData.length()) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Illegal tagValueOffset=" + tagValueOffset + " tagType=" + tagType);
+                }
+                continue;
+            }
+
+            if (byteCount < 0 || tagValueOffset + byteCount > segmentData.length()) {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Illegal number of bytes for TI tag data tagType=" + tagType);
+                }
+                continue;
+            }
+
+            //assume componentCount == 1 && fmtCode == 3
+            return segmentData.getInt16(tagValueOffset);
+        }
+
+        return -1;
+    }
+
+    private static int calcTagOffset(int ifdOffset, int tagIndex) {
+        return ifdOffset + 2 + 12 * tagIndex;
+    }
+
+    private static boolean handles(int imageMagicNumber) {
+        return (imageMagicNumber & EXIF_MAGIC_NUMBER) == EXIF_MAGIC_NUMBER
+                || imageMagicNumber == MOTOROLA_TIFF_MAGIC_NUMBER
+                || imageMagicNumber == INTEL_TIFF_MAGIC_NUMBER;
+    }
+
+    public static void copyExif(ExifInterface originalExif, int width, int height, String imageOutputPath) {
+        String[] attributes = new String[]{
+                ExifInterface.TAG_APERTURE,
+                ExifInterface.TAG_DATETIME,
+                ExifInterface.TAG_DATETIME_DIGITIZED,
+                ExifInterface.TAG_EXPOSURE_TIME,
+                ExifInterface.TAG_FLASH,
+                ExifInterface.TAG_FOCAL_LENGTH,
+                ExifInterface.TAG_GPS_ALTITUDE,
+                ExifInterface.TAG_GPS_ALTITUDE_REF,
+                ExifInterface.TAG_GPS_DATESTAMP,
+                ExifInterface.TAG_GPS_LATITUDE,
+                ExifInterface.TAG_GPS_LATITUDE_REF,
+                ExifInterface.TAG_GPS_LONGITUDE,
+                ExifInterface.TAG_GPS_LONGITUDE_REF,
+                ExifInterface.TAG_GPS_PROCESSING_METHOD,
+                ExifInterface.TAG_GPS_TIMESTAMP,
+                ExifInterface.TAG_ISO,
+                ExifInterface.TAG_MAKE,
+                ExifInterface.TAG_MODEL,
+                ExifInterface.TAG_SUBSEC_TIME,
+                ExifInterface.TAG_SUBSEC_TIME_DIG,
+                ExifInterface.TAG_SUBSEC_TIME_ORIG,
+                ExifInterface.TAG_WHITE_BALANCE
+        };
+
+        try {
+            ExifInterface newExif = new ExifInterface(imageOutputPath);
+            String value;
+            for (String attribute : attributes) {
+                value = originalExif.getAttribute(attribute);
+                if (!TextUtils.isEmpty(value)) {
+                    newExif.setAttribute(attribute, value);
+                }
+            }
+            newExif.setAttribute(ExifInterface.TAG_IMAGE_WIDTH, String.valueOf(width));
+            newExif.setAttribute(ExifInterface.TAG_IMAGE_LENGTH, String.valueOf(height));
+            newExif.setAttribute(ExifInterface.TAG_ORIENTATION, "0");
+
+            newExif.saveAttributes();
+
+        } catch (IOException e) {
+            Log.d(TAG, e.getMessage());
+        }
     }
 
     /**
@@ -186,101 +328,14 @@ public class ImageHeaderParser {
         }
     }
 
-    private static int parseExifSegment(RandomAccessReader segmentData) {
-        final int headerOffsetSize = JPEG_EXIF_SEGMENT_PREAMBLE.length();
+    private interface Reader {
+        int getUInt16() throws IOException;
 
-        short byteOrderIdentifier = segmentData.getInt16(headerOffsetSize);
-        final ByteOrder byteOrder;
-        if (byteOrderIdentifier == MOTOROLA_TIFF_MAGIC_NUMBER) {
-            byteOrder = ByteOrder.BIG_ENDIAN;
-        } else if (byteOrderIdentifier == INTEL_TIFF_MAGIC_NUMBER) {
-            byteOrder = ByteOrder.LITTLE_ENDIAN;
-        } else {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Unknown endianness = " + byteOrderIdentifier);
-            }
-            byteOrder = ByteOrder.BIG_ENDIAN;
-        }
+        short getUInt8() throws IOException;
 
-        segmentData.order(byteOrder);
+        long skip(long total) throws IOException;
 
-        int firstIfdOffset = segmentData.getInt32(headerOffsetSize + 4) + headerOffsetSize;
-        int tagCount = segmentData.getInt16(firstIfdOffset);
-
-        int tagOffset, tagType, formatCode, componentCount;
-        for (int i = 0; i < tagCount; i++) {
-            tagOffset = calcTagOffset(firstIfdOffset, i);
-            tagType = segmentData.getInt16(tagOffset);
-
-            // We only want orientation.
-            if (tagType != ORIENTATION_TAG_TYPE) {
-                continue;
-            }
-
-            formatCode = segmentData.getInt16(tagOffset + 2);
-
-            // 12 is max format code.
-            if (formatCode < 1 || formatCode > 12) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Got invalid format code = " + formatCode);
-                }
-                continue;
-            }
-
-            componentCount = segmentData.getInt32(tagOffset + 4);
-
-            if (componentCount < 0) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Negative tiff component count");
-                }
-                continue;
-            }
-
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "Got tagIndex=" + i + " tagType=" + tagType + " formatCode=" + formatCode
-                        + " componentCount=" + componentCount);
-            }
-
-            final int byteCount = componentCount + BYTES_PER_FORMAT[formatCode];
-
-            if (byteCount > 4) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Got byte count > 4, not orientation, continuing, formatCode=" + formatCode);
-                }
-                continue;
-            }
-
-            final int tagValueOffset = tagOffset + 8;
-
-            if (tagValueOffset < 0 || tagValueOffset > segmentData.length()) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Illegal tagValueOffset=" + tagValueOffset + " tagType=" + tagType);
-                }
-                continue;
-            }
-
-            if (byteCount < 0 || tagValueOffset + byteCount > segmentData.length()) {
-                if (Log.isLoggable(TAG, Log.DEBUG)) {
-                    Log.d(TAG, "Illegal number of bytes for TI tag data tagType=" + tagType);
-                }
-                continue;
-            }
-
-            //assume componentCount == 1 && fmtCode == 3
-            return segmentData.getInt16(tagValueOffset);
-        }
-
-        return -1;
-    }
-
-    private static int calcTagOffset(int ifdOffset, int tagIndex) {
-        return ifdOffset + 2 + 12 * tagIndex;
-    }
-
-    private static boolean handles(int imageMagicNumber) {
-        return (imageMagicNumber & EXIF_MAGIC_NUMBER) == EXIF_MAGIC_NUMBER
-                || imageMagicNumber == MOTOROLA_TIFF_MAGIC_NUMBER
-                || imageMagicNumber == INTEL_TIFF_MAGIC_NUMBER;
+        int read(byte[] buffer, int byteCount) throws IOException;
     }
 
     private static class RandomAccessReader {
@@ -307,16 +362,6 @@ public class ImageHeaderParser {
         public short getInt16(int offset) {
             return data.getShort(offset);
         }
-    }
-
-    private interface Reader {
-        int getUInt16() throws IOException;
-
-        short getUInt8() throws IOException;
-
-        long skip(long total) throws IOException;
-
-        int read(byte[] buffer, int byteCount) throws IOException;
     }
 
     private static class StreamReader implements Reader {
@@ -372,52 +417,6 @@ public class ImageHeaderParser {
                 toRead -= read;
             }
             return byteCount - toRead;
-        }
-    }
-
-    public static void copyExif(ExifInterface originalExif, int width, int height, String imageOutputPath) {
-        String[] attributes = new String[]{
-                ExifInterface.TAG_APERTURE,
-                ExifInterface.TAG_DATETIME,
-                ExifInterface.TAG_DATETIME_DIGITIZED,
-                ExifInterface.TAG_EXPOSURE_TIME,
-                ExifInterface.TAG_FLASH,
-                ExifInterface.TAG_FOCAL_LENGTH,
-                ExifInterface.TAG_GPS_ALTITUDE,
-                ExifInterface.TAG_GPS_ALTITUDE_REF,
-                ExifInterface.TAG_GPS_DATESTAMP,
-                ExifInterface.TAG_GPS_LATITUDE,
-                ExifInterface.TAG_GPS_LATITUDE_REF,
-                ExifInterface.TAG_GPS_LONGITUDE,
-                ExifInterface.TAG_GPS_LONGITUDE_REF,
-                ExifInterface.TAG_GPS_PROCESSING_METHOD,
-                ExifInterface.TAG_GPS_TIMESTAMP,
-                ExifInterface.TAG_ISO,
-                ExifInterface.TAG_MAKE,
-                ExifInterface.TAG_MODEL,
-                ExifInterface.TAG_SUBSEC_TIME,
-                ExifInterface.TAG_SUBSEC_TIME_DIG,
-                ExifInterface.TAG_SUBSEC_TIME_ORIG,
-                ExifInterface.TAG_WHITE_BALANCE
-        };
-
-        try {
-            ExifInterface newExif = new ExifInterface(imageOutputPath);
-            String value;
-            for (String attribute : attributes) {
-                value = originalExif.getAttribute(attribute);
-                if (!TextUtils.isEmpty(value)) {
-                    newExif.setAttribute(attribute, value);
-                }
-            }
-            newExif.setAttribute(ExifInterface.TAG_IMAGE_WIDTH, String.valueOf(width));
-            newExif.setAttribute(ExifInterface.TAG_IMAGE_LENGTH, String.valueOf(height));
-            newExif.setAttribute(ExifInterface.TAG_ORIENTATION, "0");
-
-            newExif.saveAttributes();
-
-        } catch (IOException e) {
-            Log.d(TAG, e.getMessage());
         }
     }
 

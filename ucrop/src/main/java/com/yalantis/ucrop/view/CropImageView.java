@@ -108,20 +108,6 @@ public class CropImageView extends TransformImageView {
     }
 
     /**
-     * Updates current crop rectangle with given. Also recalculates image properties and position
-     * to fit new crop rectangle.
-     *
-     * @param cropRect - new crop rectangle
-     */
-    public void setCropRect(RectF cropRect) {
-        mTargetAspectRatio = cropRect.width() / cropRect.height();
-        mCropRect.set(cropRect.left - getPaddingLeft(), cropRect.top - getPaddingTop(),
-                cropRect.right - getPaddingRight(), cropRect.bottom - getPaddingBottom());
-        calculateImageScaleBounds();
-        setImageToWrapCropBounds();
-    }
-
-    /**
      * This method sets aspect ratio for crop bounds.
      * If {@link #SOURCE_IMAGE_ASPECT_RATIO} value is passed - aspect ratio is calculated
      * based on current image width and height.
@@ -144,6 +130,20 @@ public class CropImageView extends TransformImageView {
         if (mCropBoundsChangeListener != null) {
             mCropBoundsChangeListener.onCropAspectRatioChanged(mTargetAspectRatio);
         }
+    }
+
+    /**
+     * Updates current crop rectangle with given. Also recalculates image properties and position
+     * to fit new crop rectangle.
+     *
+     * @param cropRect - new crop rectangle
+     */
+    public void setCropRect(RectF cropRect) {
+        mTargetAspectRatio = cropRect.width() / cropRect.height();
+        mCropRect.set(cropRect.left - getPaddingLeft(), cropRect.top - getPaddingTop(),
+                cropRect.right - getPaddingRight(), cropRect.bottom - getPaddingBottom());
+        calculateImageScaleBounds();
+        setImageToWrapCropBounds();
     }
 
     @Nullable

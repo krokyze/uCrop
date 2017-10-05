@@ -14,8 +14,8 @@ import com.yalantis.ucrop.callback.OverlayViewChangeListener;
 
 public class UCropView extends FrameLayout {
 
-    private GestureCropImageView mGestureCropImageView;
     private final OverlayView mViewOverlay;
+    private GestureCropImageView mGestureCropImageView;
 
     public UCropView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
