@@ -39,4 +39,5 @@ dependencies {
     implementation 'androidx.core:core:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation project(':ucrop')
+    implementation 'io.github.ParkSangGwon:tedpermission:2.3.0'
 }

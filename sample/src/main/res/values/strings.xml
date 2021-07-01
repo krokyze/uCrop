@@ -51,4 +51,5 @@
     <string name="file_provider_authorities">com.yalantis.ucrop.provider</string>
     <string name="channel_name">ucrop_chanel</string>
     <string name="channel_description">ucrop result image</string>
+    <string name="button_camera">Camera</string>
 </resources>

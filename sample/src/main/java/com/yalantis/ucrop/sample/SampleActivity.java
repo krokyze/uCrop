@@ -1,7 +1,11 @@
 package com.yalantis.ucrop.sample;
 
+import android.Manifest;
 import android.annotation.TargetApi;
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Animatable;
@@ -9,6 +13,8 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -25,20 +31,26 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gun0912.tedpermission.PermissionListener;
+import com.gun0912.tedpermission.TedPermission;
 import com.yalantis.ucrop.UCrop;
 import com.yalantis.ucrop.UCropActivity;
 import com.yalantis.ucrop.UCropFragment;
 import com.yalantis.ucrop.UCropFragmentCallback;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 /**
@@ -51,6 +63,10 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
     private static final int REQUEST_SELECT_PICTURE = 0x01;
     private static final int REQUEST_SELECT_PICTURE_FOR_FRAGMENT = 0x02;
     private static final String SAMPLE_CROPPED_IMAGE_NAME = "SampleCropImage";
+    private static final int CAMERA_REQUEST = 1888;
+    private static final int MY_CAMERA_PERMISSION_CODE = 100;
+    private static final int READ_EXTERNAL_STORAGE = 200;
+    private static final int WRITE_EXTERNAL_STORAGE = 300;
 
     private RadioGroup mRadioGroupAspectRatio, mRadioGroupCompressionSettings;
     private EditText mEditTextMaxWidth, mEditTextMaxHeight;
@@ -63,6 +79,7 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
     private Toolbar toolbar;
     private ScrollView settingsView;
     private int requestMode = BuildConfig.RequestMode;
+    private int cameraMode = 100;
 
     private UCropFragment fragment;
     private boolean mShowLoader;
@@ -89,8 +106,15 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         setupUI();
     }
 
+    public Uri getImageUri(Context inContext, Bitmap inImage) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
+        return Uri.parse(path);
+    }
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             if (requestCode == requestMode) {
                 final Uri selectedUri = data.getData();
@@ -99,8 +123,19 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
                 } else {
                     Toast.makeText(SampleActivity.this, R.string.toast_cannot_retrieve_selected_image, Toast.LENGTH_SHORT).show();
                 }
-            } else if (requestCode == UCrop.REQUEST_CROP) {
+            }
+
+            else if (requestCode == UCrop.REQUEST_CROP) {
                 handleCropResult(data);
+            }
+
+            else if (requestCode == CAMERA_REQUEST)
+            {
+                Bitmap photo = (Bitmap) data.getExtras().get("data");
+                Toast.makeText(SampleActivity.this, data.toString(), Toast.LENGTH_SHORT).show();
+                Uri tempUri = getImageUri(getApplicationContext(), photo);
+                startCrop(tempUri);
+
             }
         }
         if (resultCode == UCrop.RESULT_ERROR) {
@@ -144,6 +179,25 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         }
     };
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
+    {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MY_CAMERA_PERMISSION_CODE)
+        {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED)
+            {
+                Toast.makeText(this, "camera permission granted", Toast.LENGTH_LONG).show();
+                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(cameraIntent, CAMERA_REQUEST);
+            }
+            else
+            {
+                Toast.makeText(this, "camera permission denied", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
     @SuppressWarnings("ConstantConditions")
     private void setupUI() {
         findViewById(R.id.button_crop).setOnClickListener(new View.OnClickListener() {
@@ -152,6 +206,17 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
                 pickFromGallery();
             }
         });
+
+
+        findViewById(R.id.button_camera).setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.M)
+            @Override
+            public void onClick(View v) {
+                pickFromCamera();
+
+            }
+        });
+
         findViewById(R.id.button_random_image).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -177,7 +242,6 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         mTextViewQuality = findViewById(R.id.text_view_quality);
         mCheckBoxHideBottomControls = findViewById(R.id.checkbox_hide_bottom_controls);
         mCheckBoxFreeStyleCrop = findViewById(R.id.checkbox_freestyle_crop);
-
 
         mCheckBoxBrigtness = findViewById(R.id.checkbox_brightness);
         mCheckBoxContrast = findViewById(R.id.checkbox_contrast);
@@ -230,6 +294,34 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
         startActivityForResult(Intent.createChooser(intent, getString(R.string.label_select_picture)), requestMode);
     }
 
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void pickFromCamera(){
+        //call back after permission granted
+        PermissionListener permissionlistener = new PermissionListener() {
+            @Override
+            public void onPermissionGranted() {
+
+                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(cameraIntent, CAMERA_REQUEST);
+            }
+
+            @Override
+            public void onPermissionDenied(List<String> deniedPermissions) {
+                Toast.makeText(SampleActivity.this, "Permission Denied\n" + deniedPermissions.toString(), Toast.LENGTH_SHORT).show();
+            }
+
+
+        };
+
+        //check all needed permissions together
+        TedPermission.with(this)
+                .setPermissionListener(permissionlistener)
+                .setDeniedMessage("If you reject permission,you can not use this service\n\nPlease turn on permissions at [Setting] > [Permission]")
+                .setPermissions(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE,Manifest.permission.CAMERA)
+                .check();
+    }
+
     private void startCrop(@NonNull Uri uri) {
         String destinationFileName = SAMPLE_CROPPED_IMAGE_NAME;
         switch (mRadioGroupCompressionSettings.getCheckedRadioButtonId()) {
@@ -278,7 +370,9 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
                     if (ratioX > 0 && ratioY > 0) {
                         uCrop = uCrop.withAspectRatio(ratioX, ratioY);
                     }
-                } catch (NumberFormatException e) {
+                }
+
+                catch (NumberFormatException e) {
                     Log.i(TAG, String.format("Number please: %s", e.getMessage()));
                 }
                 break;
@@ -317,6 +411,7 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
                 options.setCompressionFormat(Bitmap.CompressFormat.JPEG);
                 break;
         }
+
         options.setCompressionQuality(mSeekBarQuality.getProgress());
 
         options.setHideBottomControls(mCheckBoxHideBottomControls.isChecked());
@@ -450,10 +545,9 @@ public class SampleActivity extends BaseActivity implements UCropFragmentCallbac
      * Configures and styles both status bar and toolbar.
      */
     private void setupAppBar() {
+
         setStatusBarColor(mStatusBarColor);
-
         toolbar = findViewById(R.id.toolbar);
-
         // Set all of the Toolbar coloring
         toolbar.setBackgroundColor(mToolbarColor);
         toolbar.setTitleTextColor(mToolbarWidgetColor);
