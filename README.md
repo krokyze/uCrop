@@ -13,14 +13,13 @@
 	```
 	allprojects {
 	   repositories {
-	      jcenter()
-	      maven { url "https://jitpack.io" }
+	      mavenCentral()
 	   }
 	}
 	```
 
-    ``` implementation 'com.github.krokyze:ucropnedit:2.2.6' ```
-    
+    ``` implementation 'com.github.krokyze:ucropnedit:2.2.6-2' ```
+
 2. To use uCrop’n’Edit, you can follow the exact same methods as for uCrop: <a href="https://github.com/Yalantis/uCrop#usage">Usage</a>
 
 If you have any interesting ideas for uCrop’n’Edit do not be afraid to let me know. You can easily leave a request and I will be happy to take a look at the viability of your proposal. I’ll be more than happy to try and add some new features to the library, if I think they can make it even better!
@@ -31,31 +30,12 @@ Massive thanks to guys from Yalantis for open sourcing this great library!
 
 ## Changelog (<a href="https://github.com/Yalantis/uCrop#changelog">uCrop Changelog</a>)
 
-### Version 2.2.6 (based on uCrop 2.2.6)
-
-  * Merged new version from uCrop.
-
-### Version 2.2.5 (based on uCrop 2.2.4)
-
-  * Merged new version from uCrop.
-
-### Version 2.2.4 (based on uCrop 2.2.3)
-
-  * Merged new version from uCrop.
-
-### Version 2.2.3 (based on uCrop 2.2.2)
-
-  * Merged new version from uCrop.
-
-### Version 2.2.2 (based on uCrop 2.2.1)
-
-  * Saturation feature
-  * Sharpness feature (supported for devices with >= API 17)
-
-### Version: 2.2.1
+### Version 2.2.6-2 (based on uCrop 2.2.6)
 
   * Brightness feature
   * Contrast feature
+  * Saturation feature
+  * Sharpness feature (supported for devices with >= API 17)
 
 ## License
 
