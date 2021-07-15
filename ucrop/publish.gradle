@@ -1,28 +1,63 @@
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
+apply plugin: 'signing'
 
-group = 'com.github.krokyze'
-version = '2.2.6'
+task androidSourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    if (project.plugins.findPlugin("com.android.library")) {
+        from android.sourceSets.main.java.srcDirs
+        from android.sourceSets.main.kotlin.srcDirs
+    } else {
+        from sourceSets.main.java.srcDirs
+        from sourceSets.main.kotlin.srcDirs
+    }
+}
 
-publishing {
-    publications {
-        Production(MavenPublication) {
-            artifact("$buildDir/outputs/aar/ucropnedit-release.aar")
-            groupId
-            artifactId 'ucropnedit'
-            version this.version
+artifacts {
+    archives androidSourcesJar
+}
 
-            pom.withXml {
-                def dependenciesNode = asNode().appendNode('dependencies')
+group = PUBLISH_GROUP_ID
+version = PUBLISH_VERSION
 
-                // Iterate over the implementation dependencies (we don't want the test ones), adding a <dependency> node for each
-                configurations.implementation.allDependencies.each {
-                    // Ensure dependencies such as fileTree are not included in the pom.
-                    if (it.name != 'unspecified') {
-                        def dependencyNode = dependenciesNode.appendNode('dependency')
-                        dependencyNode.appendNode('groupId', it.group)
-                        dependencyNode.appendNode('artifactId', it.name)
-                        dependencyNode.appendNode('version', it.version)
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId PUBLISH_GROUP_ID
+                artifactId PUBLISH_ARTIFACT_ID
+                version PUBLISH_VERSION
+
+                if (project.plugins.findPlugin("com.android.library")) {
+                    from components.release
+                } else {
+                    from components.java
+                }
+
+                artifact androidSourcesJar
+
+                pom {
+                    name = PUBLISH_ARTIFACT_ID
+                    description = 'Image Cropping + Editing Library for Android'
+                    url = 'https://github.com/krokyze/uCrop-n-Edit'
+
+                    licenses {
+                        license {
+                            name = 'uCrop\'n\'Edit License'
+                            url = 'https://github.com/krokyze/uCrop-n-Edit#license'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name = 'Martin Anderson'
+                            email = 'martins.andersons@hotmail.com'
+                        }
+                    }
+
+                    scm {
+                        connection = 'scm:git:github.com/krokyze/uCrop-n-Edit.git'
+                        developerConnection = 'scm:git:ssh://github.com/krokyze/uCrop-n-Edit.git'
+                        url = 'https://github.com/krokyze/uCrop-n-Edit/tree/master'
                     }
                 }
             }
@@ -30,40 +65,10 @@ publishing {
     }
 }
 
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
-
-    override = true
-    publish = true
-
-    publications = ['Production']
-    configurations = ['archives']
-
-    pkg {
-        repo = 'maven'
-        name = 'ucropnedit'
-        websiteUrl = 'https://github.com/krokyze/uCrop-n-Edit'
-        vcsUrl = 'https://github.com/krokyze/uCrop-n-Edit.git'
-        licenses = ["Apache-2.0"]
-        
-        version {
-            name = "2.2.6"
-
-            gpg {
-                sign = true
-                passphrase = properties.getProperty("bintray.gpg.password")
-            }
-
-            mavenCentralSync {
-                sync = true
-                user = properties.getProperty("bintray.oss.user")
-                password = properties.getProperty("bintray.oss.password")
-                close = '1'
-            }
-        }
-    }
+signing {
+    useInMemoryPgpKeys(
+            rootProject.ext["signing.key"],
+            rootProject.ext["signing.password"],
+    )
+    sign publishing.publications
 }

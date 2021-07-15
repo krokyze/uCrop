@@ -1,0 +1,19 @@
+ext["ossrhUsername"] = ''
+ext["ossrhPassword"] = ''
+ext["sonatypeStagingProfileId"] = ''
+ext["signing.password"] = ''
+ext["signing.key"] = ''
+
+Properties p = new Properties()
+new FileInputStream(project.rootProject.file('local.properties')).withCloseable { is -> p.load(is) }
+p.each { name, value -> ext[name] = value }
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            stagingProfileId = sonatypeStagingProfileId
+            username = ossrhUsername
+            password = ossrhPassword
+        }
+    }
+}
